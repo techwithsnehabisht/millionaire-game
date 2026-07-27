@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 
 function Game() {
   const location = useLocation();
-
   const { categoryId, categoryName } = location.state;
 
   const [questions, setQuestions] = useState([]);
@@ -13,6 +12,13 @@ function Game() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quizFinished, setQuizFinished] = useState(false);
+
+  const priceMoney = [
+    1000, 2000, 3000, 5000, 10000, 20000, 40000, 80000, 160000, 320000, 640000,
+    1250000, 2500000, 5000000, 10000000,
+  ];
+
+  const currentPrize = priceMoney[currentQuestionIndex];
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -30,15 +36,13 @@ function Game() {
       const data = await response.json();
 
       if (data.response_code !== 0) {
-        throw new Error(
-          `No ${difficulty} questions available for this category.`,
-        );
+        throw new Error(`No ${difficulty} questions found.`);
       }
 
       return data.results;
     }
 
-    throw new Error("The quiz API is rate-limited. Please try again.");
+    throw new Error("API rate limit exceeded. Please try again.");
   };
 
   const fetchQuestions = async () => {
@@ -92,89 +96,117 @@ function Game() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex justify-center items-center">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-3xl">
-        <h1 className="text-3xl font-bold mb-2 text-center">Quiz Game</h1>
+    <div className="min-h-screen bg-slate-200 flex justify-center items-center p-6">
+      <div className="flex gap-8 w-full max-w-7xl">
+        <div className="flex-1 bg-white rounded-xl shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-center mb-2">Quiz Game</h1>
 
-        <h2 className="text-center text-gray-600 mb-6">
-          Category: {categoryName}
-        </h2>
+          <h2 className="text-center text-gray-500 mb-6">{categoryName}</h2>
 
-        {loading && (
-          <p className="text-center text-gray-500">Loading questions...</p>
-        )}
+          {loading && <p className="text-center">Loading...</p>}
 
-        {!loading && error && (
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={fetchQuestions}
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-            >
-              Retry
-            </button>
-          </div>
-        )}
+          {!loading && error && (
+            <>
+              <p className="text-red-600 text-center">{error}</p>
 
-        {!loading && !error && quizFinished && (
-          <p className="text-center text-lg font-semibold text-blue-600">
-            You completed the quiz!
-          </p>
-        )}
+              <button
+                onClick={fetchQuestions}
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+              >
+                Retry
+              </button>
+            </>
+          )}
 
-        {!loading && !error && !quizFinished && currentQuestion && (
-          <>
-            <p className="text-sm text-gray-500 mb-2">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </p>
-
-            <h2 className="text-2xl font-semibold mb-6">
-              {currentQuestion.question}
+          {!loading && !error && quizFinished && (
+            <h2 className="text-center text-2xl text-green-600">
+              Congratulations! You finished the quiz.
             </h2>
+          )}
 
-            <div className="space-y-4">
-              {options.map((option, index) => (
-                <button
-                  key={index}
-                  disabled={selectedAnswer !== null}
-                  onClick={() => handleAnswerClick(option)}
-                  className={`w-full p-4 rounded-lg border text-left transition
-                    ${
+          {!loading && !error && !quizFinished && currentQuestion && (
+            <>
+              <p className="text-gray-500 mb-3">
+                Question {currentQuestionIndex + 1} / {questions.length}
+              </p>
+
+              <p className="font-bold text-blue-600 mb-5">
+                Current Prize: ₹{currentPrize.toLocaleString()}
+              </p>
+
+              <div className="bg-blue-50 rounded-lg p-5 mb-6">
+                <h2
+                  className="text-xl font-semibold"
+                  dangerouslySetInnerHTML={{
+                    __html: currentQuestion.question,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-4">
+                {options.map((option, index) => (
+                  <button
+                    key={index}
+                    disabled={selectedAnswer !== null}
+                    onClick={() => handleAnswerClick(option)}
+                    className={`w-full p-4 rounded-lg border transition ${
                       selectedAnswer === option
                         ? "bg-blue-500 text-white"
-                        : "bg-white hover:bg-blue-100"
-                    }
-                    `}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-
-            {answerResult && (
-              <div className="mt-6 text-center">
-                <p
-                  className={`text-lg font-semibold mb-4 ${
-                    answerResult === "Correct!"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {answerResult}
-                </p>
-
-                <button
-                  onClick={handleNextClick}
-                  className="px-6 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-                >
-                  {currentQuestionIndex < questions.length - 1
-                    ? "Next"
-                    : "Finish"}
-                </button>
+                        : "hover:bg-blue-100"
+                    }`}
+                    dangerouslySetInnerHTML={{
+                      __html: option,
+                    }}
+                  />
+                ))}
               </div>
-            )}
-          </>
-        )}
+
+              {answerResult && (
+                <div className="mt-6 text-center">
+                  <p
+                    className={`font-semibold text-lg mb-5 ${
+                      answerResult === "Correct!"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {answerResult}
+                  </p>
+
+                  <button
+                    onClick={handleNextClick}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg"
+                  >
+                    {currentQuestionIndex === questions.length - 1
+                      ? "Finish"
+                      : "Next Question"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="w-72 bg-gray-800 text-white rounded-xl p-5">
+          <h2 className="text-center text-2xl font-bold mb-6">Prize Ladder</h2>
+
+          {[...priceMoney].reverse().map((money) => {
+            const originalIndex = priceMoney.indexOf(money);
+
+            return (
+              <div
+                key={money}
+                className={`p-3 rounded-lg mb-2 text-center font-semibold ${
+                  originalIndex === currentQuestionIndex
+                    ? "bg-yellow-400 text-black"
+                    : "bg-gray-700"
+                }`}
+              >
+                ₹{money.toLocaleString()}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
